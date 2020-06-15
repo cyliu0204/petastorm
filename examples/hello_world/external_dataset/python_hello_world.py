@@ -20,14 +20,20 @@ from __future__ import print_function
 from petastorm import make_batch_reader
 
 
-def python_hello_world(dataset_url='file:///tmp/external_dataset'):
+# def python_hello_world(dataset_url='file:///tmp/external_dataset'):
+#     # Reading data from the non-Petastorm Parquet via pure Python
+#     with make_batch_reader(dataset_url, schema_fields=["id", "value1", "value2"]) as reader:
+#         for schema_view in reader:
+#             # make_batch_reader() returns batches of rows instead of individual rows
+#             print("Batched read:\nid: {0} value1: {1} value2: {2}".format(
+#                 schema_view.id, schema_view.value1, schema_view.value2))
+
+def python_hello_world(dataset_url='hdfs://localhost:9000/tmp/hive'):
     # Reading data from the non-Petastorm Parquet via pure Python
-    with make_batch_reader(dataset_url, schema_fields=["id", "value1", "value2"]) as reader:
+    with make_batch_reader(dataset_url, hdfs_driver='libhdfs') as reader:
         for schema_view in reader:
             # make_batch_reader() returns batches of rows instead of individual rows
-            print("Batched read:\nid: {0} value1: {1} value2: {2}".format(
-                schema_view.id, schema_view.value1, schema_view.value2))
-
+           p
 
 if __name__ == '__main__':
     python_hello_world()

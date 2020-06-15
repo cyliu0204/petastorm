@@ -12,3 +12,5 @@ dist
 _build
 
 coverage.xml
+
+venv
