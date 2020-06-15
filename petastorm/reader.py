@@ -187,7 +187,7 @@ def make_batch_reader(dataset_url_or_urls,
                       cache_type='null', cache_location=None, cache_size_limit=None,
                       cache_row_size_estimate=None, cache_extra_settings=None,
                       hdfs_driver='libhdfs3',
-                      transform_spec=None):
+                      transform_spec=None, s3_configuration=None):
     """
     Creates an instance of Reader for reading batches out of a non-Petastorm Parquet store.
 
@@ -241,14 +241,18 @@ def make_batch_reader(dataset_url_or_urls,
     :param transform_spec: An instance of :class:`~petastorm.transform.TransformSpec` object defining how a record
         is transformed after it is loaded and decoded. The transformation occurs on a worker thread/process (depends
         on the ``reader_pool_type`` value).
+    :param s3_configuration: An instance of s3 configuration includes properties:
+        use_ssl, anon, key, secret, endpoint_url
     :return: A :class:`Reader` object
     """
     dataset_url_or_urls = normalize_dataset_url_or_urls(dataset_url_or_urls)
 
-    filesystem, dataset_path_or_paths = get_filesystem_and_path_or_paths(dataset_url_or_urls, hdfs_driver)
+    filesystem, dataset_path_or_paths = get_filesystem_and_path_or_paths(dataset_url_or_urls, hdfs_driver,
+                                                                         s3_configuration=s3_configuration)
 
     try:
-        dataset_metadata.get_schema_from_dataset_url(dataset_url_or_urls, hdfs_driver=hdfs_driver)
+        dataset_metadata.get_schema_from_dataset_url(dataset_url_or_urls, hdfs_driver=hdfs_driver,
+                                                     s3_configuration=s3_configuration)
         warnings.warn('Please use make_reader (instead of \'make_batch_dataset\' function to read this dataset. '
                       'You may get unexpected results. '
                       'Currently make_batch_reader supports reading only Parquet stores that contain '

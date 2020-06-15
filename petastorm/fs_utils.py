@@ -40,7 +40,7 @@ class FilesystemResolver(object):
     """Resolves a dataset URL, makes a connection via pyarrow, and provides a filesystem object."""
 
     def __init__(self, dataset_url, hadoop_configuration=None, connector=HdfsConnector,
-                 hdfs_driver='libhdfs3', user=None):
+                 hdfs_driver='libhdfs3', user=None, s3_configuration=None):
         """
         Given a dataset URL and an optional hadoop configuration, parse and interpret the URL to
         instantiate a pyarrow filesystem.
@@ -125,7 +125,7 @@ class FilesystemResolver(object):
                     lambda url=self._dataset_url, user=user: \
                     connector.hdfs_connect_namenode(urlparse(url), hdfs_driver, user=user)
 
-        elif self._parsed_dataset_url.scheme == 's3':
+        elif self._parsed_dataset_url.scheme == 's3' or self._parsed_dataset_url.scheme == 's3a':
             # Case 5
             # S3 support requires s3fs to be installed
             try:
@@ -136,8 +136,16 @@ class FilesystemResolver(object):
 
             if not self._parsed_dataset_url.netloc:
                 raise ValueError('URLs must be of the form s3://bucket/path')
+            if s3_configuration is None:
+                fs = s3fs.S3FileSystem()
+            else:
+                if s3_configuration.anon is None:
+                    raise ValueError('s3_configuration must contains config anon')
+                _client_client_kwargs = dict(endpoint_url=s3_configuration.endpoint_url)
+                fs = s3fs.S3FileSystem(anon=s3_configuration.anon, key=s3_configuration.key,
+                                       use_ssl=s3_configuration.use_ssl,
+                                       secret=s3_configuration.secret, client_kwargs=_client_client_kwargs)
 
-            fs = s3fs.S3FileSystem()
             self._filesystem = pyarrow.filesystem.S3FSWrapper(fs)
             self._filesystem_factory = lambda: pyarrow.filesystem.S3FSWrapper(s3fs.S3FileSystem())
 
@@ -196,7 +204,7 @@ class FilesystemResolver(object):
                            'anti-pickling protection')
 
 
-def get_filesystem_and_path_or_paths(url_or_urls, hdfs_driver='libhdfs3'):
+def get_filesystem_and_path_or_paths(url_or_urls, hdfs_driver='libhdfs3', s3_configuration=None):
     """
     Given a url or url list, return a tuple ``(filesystem, path_or_paths)``
     ``filesystem`` is created from the given url(s), and ``path_or_paths`` is a path or path list
@@ -217,7 +225,7 @@ def get_filesystem_and_path_or_paths(url_or_urls, hdfs_driver='libhdfs3'):
         if parsed_url.scheme != first_scheme or parsed_url.netloc != first_netloc:
             raise ValueError('The dataset url list must contain url with the same scheme and netloc.')
 
-    fs = FilesystemResolver(url_list[0], hdfs_driver=hdfs_driver).filesystem()
+    fs = FilesystemResolver(url_list[0], hdfs_driver=hdfs_driver, s3_configuration=s3_configuration).filesystem()
     path_list = [get_dataset_path(parsed_url) for parsed_url in parsed_url_list]
 
     if isinstance(url_or_urls, list):
